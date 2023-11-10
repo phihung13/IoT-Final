@@ -2,9 +2,17 @@ import socket, json, struct, requests
 import random, time
 from urllib import request, parse
 import paho.mqtt.client as mqtt
-# from grove.display.jhd1802 import JHD1802
-#from grove.grove_4_digit_display import Grove4DigitDisplay
-#display = Grove4DigitDisplay(12,13)
+
+from grove.display.jhd1802 import JHD1802 as LCD
+from grove.grove_4_digit_display import Grove4DigitDisplay
+from seeed_dht import DHT
+from gpiozero import LED
+Led1=LED(5)
+Led2=LED(16)
+display = Grove4DigitDisplay(12,13)
+lcd = LCD()
+sensor_dht = DHT('11', 12)
+
 server_ip = '0.0.0.0'
 server_port = 20000
 total_humi = 0
@@ -24,6 +32,8 @@ prev_led2 = None
 prev_servo = None
 prev_sw1 = None
 prev_sw2 = None
+prev_lcd = ""
+
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     server_socket.bind((server_ip, server_port))
@@ -70,7 +80,7 @@ def getled2():
     field2 = response_data['field2']
     return field2
 
-def getbuzzer():
+def getservo():
     api_key_read = "567YU3VFWUUYFSTM"
     channel_ID = "2250527"
 
@@ -186,8 +196,7 @@ try:
                         if (start_byte == 100) and (id_byte == 60) and (cmd_byte == 1) and (data_crc == crc_byte) and (stop_byte == 200):
                             moisture, sonic, rotaly = struct.unpack('III', received_data)
 
-                            humi = random.randint(80, 95)
-                            temp = random.randint(25, 45)
+                            humi, temp = sensor_dht.read()
                             print(f" Sensor : Nhiệt độ: {temp} °C, Độ ẩm: {humi} %")
                             print(f"          Moisture: {moisture}, Sonic: {sonic}, Rotaly: {rotaly}")
 
@@ -203,7 +212,7 @@ try:
 
                             value_led1 = getled1()
                             value_led2 = getled2()
-                            value_servo = getbuzzer()
+                            value_servo = getservo()
                             sw1, sw2 = getLora()
                             if sw1 != prev_sw1 or sw2 != prev_sw2:
                                 update_lamp_data(int(sw1))
@@ -212,23 +221,26 @@ try:
                                 prev_sw2 = sw2
                             lora_packet = send_lora_packet(sw1, sw2)
                             value_lcd = getLCD()
+                            if str(value_lcd) != prev_lcd:
+                                lcd.setCurcor(0,0)
+                                lcd.write(f"{str(value_lcd)}")
+                                prev_lcd = str(value_lcd)
                             print(f" Hiển thị LCD: {str(value_lcd)}")
                             t = time.strftime("%H%M", time.localtime(time.time()))
                             print(f" Hiển thị 4 Digit Display: {t}")
-                            # lcd.clear()
-                            # lcd.setCursor(1,0)
-                            # lcd.write("{}".format(value_lcd))
+                            display.show(t)
+                            
                             if value_led1 == '1':
-                                # Led1.on()
+                                Led1.on()
                                 print(" Điều khiển: Led 1 on")
                             else:
-                                # Led1.off()
+                                Led1.off()
                                 print(" Điều khiển: Led 1 off")
                             if value_led2 == '1':
-                                # Led2.on()
+                                Led2.on()
                                 print("             Led 2 on")
                             else:
-                                # Led2.off()
+                                Led2.off()
                                 print("             Led 2 off")
                             if value_servo:
                                 print(" To client:  Tín hiệu servo:", value_servo)
