@@ -1,18 +1,19 @@
 import socket
 import struct
 import time
-import random
-
-# from gpiozero import LED
-# from seeed_dht import DHT
-
-# led = LED(5)
-# sensor = DHT('11', 12)
-
+#import random
+from grove.grove_moisture_sensor import GroveMoistureSensor as gms
+from grove.grove_ultrasonic_ranger import GroveUltrasonicRanger
+from seeed_dht import DHT
+from grove.adc import ADC
+sensor_dht = DHT('11', 12)
+sensor_sonic = GroveUltrasonicRanger(18)
+sensor_rotaly=ADC()
+getSensor = gms(2)
 # Lưu trữ giá trị servo trước đó
 previous_servo_value = None
 
-server_ip = '192.168.1.234'
+server_ip = '192.168.1.200'
 server_port = 20000
 
 def process_sw1(sw1):
@@ -44,10 +45,10 @@ while True:
             client_socket.send(b'OK')
             print("Bắt tay thành công!")
             while True:
-                # humidity, temperature = sensor.read()
-                moisture = random.randint(80, 95)
-                sonic = random.randint(100, 3000)
-                rotaly = random.randint(0, 360)
+                humidity, temperature = sensor_dht.read()
+                moisture = getSensor.moisture
+                sonic = sensor_dht.get_distance()
+                rotaly=sensor_rotaly.read_voltage(0)
                 print('Moisture {}, Sonic {}, Rotaly {}'.format(moisture, sonic, rotaly))
 
                 if moisture is not None and rotaly is not None and sonic is not None:
