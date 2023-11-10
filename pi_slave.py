@@ -1,15 +1,21 @@
+#! /usr/bin/env python3
+import sys
+sys.path.append('/home/pi/Downloads/lora/Lora_Driver')
 import socket
 import struct
 import time
 #import random
 from grove.grove_moisture_sensor import GroveMoistureSensor as gms
 from grove.grove_ultrasonic_ranger import GroveUltrasonicRanger
-from seeed_dht import DHT
 from grove.adc import ADC
-sensor_dht = DHT('11', 12)
 sensor_sonic = GroveUltrasonicRanger(18)
 sensor_rotaly=ADC()
 getSensor = gms(2)
+
+from Lora_Driver.IoT_Driver import mylora
+Lora = mylora(verbose=False)
+Lora.debug_on = 0
+Lora.set_freq(479)
 # Lưu trữ giá trị servo trước đó
 previous_servo_value = None
 
@@ -45,9 +51,8 @@ while True:
             client_socket.send(b'OK')
             print("Bắt tay thành công!")
             while True:
-                humidity, temperature = sensor_dht.read()
                 moisture = getSensor.moisture
-                sonic = sensor_dht.get_distance()
+                sonic = sensor_sonic.get_distance()
                 rotaly=sensor_rotaly.read_voltage(0)
                 print('Moisture {}, Sonic {}, Rotaly {}'.format(moisture, sonic, rotaly))
 
@@ -68,7 +73,10 @@ while True:
                     sw1, sw2 = struct.unpack('>BB', data1[:2])
                     process_sw1(sw1)
                     process_sw2(sw2)
-                    
+                    Lora.write_data(1,8,sw1)
+                    time.sleep(0.1)
+                    Lora.write_data(1,9,sw2)
+                    time.sleep(0.1)
                     data2 = client_socket.recv(1024)
                     servo_value = struct.unpack('>H', data2)[0]
                     process_servo(servo_value)

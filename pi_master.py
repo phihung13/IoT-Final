@@ -186,7 +186,7 @@ try:
                     client.on_connect = on_connect
                     client.on_message = on_message
                     client.username_pw_set(username="phihung", password="phihung")
-                    client.connect("192.168.1.234", 1883, 60)
+                    client.connect("192.168.1.108", 1883, 60)
                     data = client_socket.recv(1024)
                     if len(data) >= 5:
                         start_byte, id_byte, cmd_byte, length_byte, crc_byte = struct.unpack('BBBBB', data[:5])
